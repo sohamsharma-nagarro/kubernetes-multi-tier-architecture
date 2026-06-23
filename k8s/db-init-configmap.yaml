@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: init-script
+  namespace: multi-tier
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS employees (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        department VARCHAR(50) NOT NULL,
+        salary DECIMAL(10, 2) NOT NULL,
+        hire_date DATE NOT NULL
+    );
+    
+    INSERT INTO employees (name, email, department, salary, hire_date) VALUES
+    ('Alice Johnson', 'alice.johnson@company.com', 'Engineering', 95000.00, '2020-01-15'),
+    ('Bob Smith', 'bob.smith@company.com', 'Marketing', 75000.00, '2021-03-22'),
+    ('Carol Davis', 'carol.davis@company.com', 'Sales', 80000.00, '2019-07-10'),
+    ('David Wilson', 'david.wilson@company.com', 'Engineering', 105000.00, '2018-11-05'),
+    ('Eve Martinez', 'eve.martinez@company.com', 'HR', 70000.00, '2021-06-18'),
+    ('Frank Brown', 'frank.brown@company.com', 'Finance', 85000.00, '2020-05-12'),
+    ('Grace Lee', 'grace.lee@company.com', 'Engineering', 100000.00, '2019-02-01'),
+    ('Henry Taylor', 'henry.taylor@company.com', 'Operations', 72000.00, '2022-01-10');
