@@ -1,0 +1,22 @@
+# Ingress Controller for external access to API
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+  namespace: multi-tier
+  annotations:
+    # GKE ingress annotations
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "api-ip"
+    ingress.gcp.kubernetes.io/pre-shared-cert: ""
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 80

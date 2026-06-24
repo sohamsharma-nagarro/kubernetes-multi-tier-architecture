@@ -1,0 +1,16 @@
+# ConfigMap for Cloud SQL Configuration
+# These values are populated by the deploy-cloud-sql.sh script
+# For manual setup, update DB_HOST with your Cloud SQL private IP address
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+  namespace: multi-tier
+data:
+  # Cloud SQL instance private IP address (e.g., 10.x.x.x)
+  # This will be automatically populated during deployment
+  DB_HOST: "CLOUD_SQL_PRIVATE_IP"
+  # Standard PostgreSQL port
+  DB_PORT: "5432"
+  # Database name created in Cloud SQL
+  DB_NAME: "microservices_db"
