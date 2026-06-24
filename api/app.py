@@ -2,7 +2,7 @@ import os
 import logging
 from flask import Flask, jsonify, request
 import psycopg2
-from psycopg2 import pool
+from psycopg2 import pool, sql
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timezone
 
@@ -204,11 +204,11 @@ def create_record():
             'timestamp': datetime.now(timezone.utc).isoformat()
         }), 201
     except psycopg2.errors.UniqueViolation:
-        logger.warning(f"Duplicate email attempted")
+        logger.warning("Duplicate email attempted")
         return jsonify({'success': False, 'error': 'Email already exists'}), 409
     except Exception as e:
         logger.error(f"Error creating record: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred'}), 500
 
 
 @app.route('/api/records/<int:record_id>', methods=['PUT'])
@@ -227,16 +227,18 @@ def update_record(record_id):
                 'error': f"No valid fields provided. Allowed: {', '.join(sorted(allowed_fields))}"
             }), 400
 
-        set_clause = ', '.join(f"{col} = %s" for col in updates)
+        set_assignments = sql.SQL(', ').join(
+            sql.SQL('{} = %s').format(sql.Identifier(col)) for col in updates
+        )
+        query = sql.SQL(
+            'UPDATE employees SET {} WHERE id = %s '
+            'RETURNING id, name, email, department, salary, hire_date'
+        ).format(set_assignments)
         values = list(updates.values()) + [record_id]
 
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(
-            f'UPDATE employees SET {set_clause} WHERE id = %s '
-            f'RETURNING id, name, email, department, salary, hire_date',
-            values
-        )
+        cursor.execute(query, values)
         updated = cursor.fetchone()
         conn.commit()
         cursor.close()
@@ -255,7 +257,7 @@ def update_record(record_id):
         return jsonify({'success': False, 'error': 'Email already exists'}), 409
     except Exception as e:
         logger.error(f"Error updating record {record_id}: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred'}), 500
 
 
 @app.route('/api/records/<int:record_id>', methods=['DELETE'])
@@ -280,7 +282,7 @@ def delete_record(record_id):
         }), 200
     except Exception as e:
         logger.error(f"Error deleting record {record_id}: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred'}), 500
 
 
 @app.route('/api/health-info', methods=['GET'])

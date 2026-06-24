@@ -77,7 +77,7 @@ fi
 echo ""
 
 # Test update record
-if [ ! -z "$NEW_ID" ] && [ "$NEW_ID" != "null" ]; then
+if [ -n "$NEW_ID" ] && [ "$NEW_ID" != "null" ]; then
     echo "6️⃣  Testing PUT /api/records/$NEW_ID..."
     curl -sf -X PUT "$BASE_URL/api/records/$NEW_ID" \
       -H "Content-Type: application/json" \
