@@ -1,5 +1,7 @@
 # Multi-Tier Kubernetes Architecture with Python & PostgreSQL
 
+![CI](https://github.com/sohamsharma-nagarro/kubernetes-multi-tier-architecture/actions/workflows/ci.yml/badge.svg)
+
 ## Project Overview
 
 This project demonstrates a production-ready multi-tier microservices architecture deployed on Google Kubernetes Engine (GKE) using Python and PostgreSQL.
@@ -78,11 +80,35 @@ This project demonstrates a production-ready multi-tier microservices architectu
 
 ## API Endpoints
 
-- `GET /api/records` - Retrieve all employee records
-- `GET /api/records/<id>` - Retrieve a specific record
-- `GET /health` - Liveness probe endpoint
-- `GET /ready` - Readiness probe endpoint
-- `GET /api/health-info` - Extended health information
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/records` | Retrieve all employee records |
+| `GET` | `/api/records/<id>` | Retrieve a specific record |
+| `POST` | `/api/records` | Create a new employee record |
+| `PUT` | `/api/records/<id>` | Update an existing employee record |
+| `DELETE` | `/api/records/<id>` | Delete an employee record |
+| `GET` | `/health` | Liveness probe endpoint |
+| `GET` | `/ready` | Readiness probe endpoint |
+| `GET` | `/api/health-info` | Extended health information |
+
+### Example: Create a record
+```bash
+curl -X POST http://<API_IP>/api/records \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Jane Doe","email":"jane@company.com","department":"Engineering","salary":90000,"hire_date":"2024-01-01"}'
+```
+
+### Example: Update a record
+```bash
+curl -X PUT http://<API_IP>/api/records/1 \
+  -H "Content-Type: application/json" \
+  -d '{"salary":100000}'
+```
+
+### Example: Delete a record
+```bash
+curl -X DELETE http://<API_IP>/api/records/1
+```
 
 ## Key Features Demonstrated
 
