@@ -39,6 +39,33 @@ This project demonstrates a production-ready multi-tier microservices architectu
 
 ## Quick Start
 
+### 🚀 Deploying in GCP Cloud Shell (Recommended for Quick Setup)
+
+For a complete step-by-step guide to deploy this architecture directly in **Google Cloud Platform using Cloud Shell**, see:
+
+**[📖 GCP Cloud Shell Deployment Guide](docs/GCP_CLOUD_SHELL_DEPLOYMENT.md)**
+
+This comprehensive guide includes:
+- ✅ GCP project setup
+- ✅ GKE cluster creation from Cloud Shell
+- ✅ Docker Hub image configuration
+- ✅ Full deployment walkthrough
+- ✅ API testing and verification
+- ✅ Troubleshooting tips
+- ✅ Cost optimization strategies
+
+**Quick command to get started:**
+```bash
+# 1. Open Cloud Shell at https://console.cloud.google.com
+# 2. Set your project ID and clone the repo:
+export PROJECT_ID="your-project-id"
+gcloud config set project $PROJECT_ID
+git clone https://github.com/sohamsharma-nagarro/kubernetes-multi-tier-architecture.git
+cd kubernetes-multi-tier-architecture
+
+# 3. Follow the steps in the GCP Cloud Shell Deployment Guide (link above)
+```
+
 ### Prerequisites
 - Google Cloud Account with GKE cluster (or any Kubernetes 1.20+ cluster)
 - `gcloud` CLI configured (for GKE)
@@ -160,6 +187,14 @@ Comprehensive documentation is available in the `docs/` directory:
   - Architectural assumptions
   - Technology choices rationale
   - Limitations and future considerations
+
+- **[GCP_CLOUD_SHELL_DEPLOYMENT.md](docs/GCP_CLOUD_SHELL_DEPLOYMENT.md)** - Step-by-step GCP Cloud Shell deployment guide
+  - GCP project setup and GKE cluster creation
+  - Docker Hub image configuration
+  - Complete deployment walkthrough
+  - API testing and verification
+  - Troubleshooting tips and best practices
+  - Cost optimization for GCP
 
 - **[SOLUTION_OVERVIEW.md](docs/SOLUTION_OVERVIEW.md)** - Architecture and implementation details
   - System architecture diagram
