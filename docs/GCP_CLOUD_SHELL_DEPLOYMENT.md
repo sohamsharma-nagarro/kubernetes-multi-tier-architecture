@@ -104,26 +104,27 @@ echo "✅ APIs enabled successfully"
 ```bash
 echo "🚀 Creating GKE cluster: $CLUSTER_NAME"
 
+# Cost-effective cluster suitable for Cloud Shell deployment
 gcloud container clusters create $CLUSTER_NAME \
   --zone $GCP_ZONE \
-  --num-nodes 3 \
-  --machine-type n1-standard-2 \
+  --num-nodes 2 \
+  --machine-type e2-medium \
   --enable-autoscaling \
-  --min-nodes 3 \
-  --max-nodes 5 \
-  --enable-stackdriver-kubernetes \
+  --min-nodes 2 \
+  --max-nodes 4 \
   --addons HorizontalPodAutoscaling,HttpLoadBalancing,GcePersistentDiskCsiDriver \
-  --workload-pool=$PROJECT_ID.svc.id.goog \
   --enable-ip-alias \
   --network "default"
 
 echo "⏳ Cluster creation in progress. This may take 5-10 minutes..."
 ```
 
+**Note**: The above uses `e2-medium` (2 vCPU, 4GB memory) which is sufficient for this project and cost-effective. If you need more capacity, use `n1-standard-2` instead.
+
 **Note**: If you encounter quota errors, you may need to:
 - Increase your GCP quota
-- Use smaller machine types (e.g., `n1-standard-1`)
-- Reduce the number of nodes to 2
+- Use smaller machine types (e.g., `e2-small`)
+- Reduce the number of nodes to 1 (minimum for testing)
 
 ### Step 3: Get Cluster Credentials
 
@@ -224,7 +225,7 @@ echo "🚀 Deploying multi-tier architecture to GKE..."
 # - Create multi-tier namespace
 # - Deploy ConfigMaps and Secrets
 # - Deploy PostgreSQL database
-# - Deploy Flask API service with 4 replicas
+# - Deploy Flask API service with 1 replica (HPA scales 1-3)
 # - Configure HPA (Horizontal Pod Autoscaler)
 # - Set up Ingress for external access
 ```
@@ -235,11 +236,11 @@ echo "🚀 Deploying multi-tier architecture to GKE..."
 # Watch the deployment progress
 echo "Waiting for deployments to be ready..."
 
-# Monitor database deployment
-kubectl rollout status deployment/postgres-db -n multi-tier
+# IMPORTANT: Wait for database first before API service
+kubectl rollout status deployment/postgres-db -n multi-tier --timeout=120s
 
-# Monitor API service deployment
-kubectl rollout status deployment/api-service -n multi-tier
+# Then monitor API service deployment (allow extra time for DB init)
+kubectl rollout status deployment/api-service -n multi-tier --timeout=300s
 
 # Check pod status
 kubectl get pods -n multi-tier
@@ -255,7 +256,7 @@ kubectl get all -n multi-tier
 
 # Expected output:
 # - 1 postgres-db pod (Running)
-# - 4 api-service pods (Running)
+# - 1 api-service pod (Running, scales up to 3 via HPA)
 # - 2 services (postgres-db, api-service)
 # - 1 ingress (api-ingress)
 ```
@@ -409,16 +410,33 @@ curl http://$INGRESS_IP/api/health-info
 
 ### Access Database from Cloud Shell
 
+**Recommended: Use kubectl exec (no extra installation needed)**
+
+```bash
+# Connect directly to the PostgreSQL pod (no client installation required)
+kubectl exec -it deployment/postgres-db -n multi-tier -- psql -U dbuser -d microservices_db
+
+# List tables
+\dt
+
+# Query employee records
+SELECT * FROM employees;
+
+# Exit psql
+\q
+```
+
+**Alternative: Port-forward with local psql client**
+
 ```bash
 # Port-forward to the database
 kubectl port-forward -n multi-tier service/postgres-db 5432:5432 &
 
-# Install psql client (if not available)
-apt-get update && apt-get install -y postgresql-client
+# Install psql client (requires sudo in Cloud Shell)
+sudo apt-get update && sudo apt-get install -y postgresql-client
 
 # Connect to database
-PGPASSWORD=$(kubectl get secret -n multi-tier db-secret -o jsonpath='{.data.password}' | base64 -d)
-psql -h localhost -U postgres -d employee_db
+PGPASSWORD='SecurePassword123!@#' psql -h localhost -U dbuser -d microservices_db
 
 # List tables
 \dt
@@ -433,6 +451,8 @@ SELECT * FROM employees;
 jobs
 kill %1
 ```
+
+> **Note**: If `sudo apt-get` fails with lock errors, use the `kubectl exec` method above instead — it connects directly to the PostgreSQL pod without needing any local client installation.
 
 ### Monitor with Kubernetes Dashboard
 
@@ -587,6 +607,50 @@ kubectl create secret docker-registry regcred \
   -n multi-tier
 ```
 
+### Issue: "exceeded progress deadline" Error
+
+**Problem**: `kubectl rollout status deployment/api-service -n multi-tier` shows "exceeded its progress deadline"
+
+**Causes & Solutions**:
+1. **Database not ready yet**: The API pod's readiness probe checks DB connectivity. Wait for PostgreSQL to fully initialize first:
+   ```bash
+   kubectl rollout status deployment/postgres-db -n multi-tier --timeout=120s
+   ```
+2. **Docker image not pushed**: If the image doesn't exist on Docker Hub, push it first:
+   ```bash
+   cd api
+   docker build -t sohamsharma/py-api-service:latest .
+   docker push sohamsharma/py-api-service:latest
+   ```
+3. **Stale deployment state**: Delete and redeploy:
+   ```bash
+   kubectl delete deployment api-service -n multi-tier
+   kubectl apply -f k8s/api-deployment.yaml
+   kubectl rollout status deployment/api-service -n multi-tier --timeout=300s
+   ```
+
+### Issue: "database dbuser does not exist" in PostgreSQL Logs
+
+**Problem**: `kubectl logs -n multi-tier deployment/postgres-db` shows `FATAL: database "dbuser" does not exist`
+
+**Cause**: The `pg_isready` health check probe was connecting to a database named after the user instead of the actual database.
+
+**Solution**: This is already fixed in the latest code. Pull the latest branch and redeploy:
+```bash
+git pull origin copilot/design-containerize-deploy-multitier-architecture
+kubectl delete deployment postgres-db -n multi-tier
+kubectl apply -f k8s/db-deployment.yaml
+kubectl rollout status deployment/postgres-db -n multi-tier --timeout=120s
+```
+
+### Issue: `apt-get` Permission Denied in Cloud Shell
+
+**Problem**: Running `apt-get install` shows "Permission denied" or lock file errors
+
+**Solutions**:
+- Always use `sudo`: `sudo apt-get update && sudo apt-get install -y <package>`
+- If `sudo` also fails with lock errors, another process may be using apt. Wait a moment and retry, or use `kubectl exec` to access tools directly inside pods instead of installing locally.
+
 ## Cost Optimization Tips
 
 1. **Use Preemptible Nodes**: Add `--preemptible` flag to cluster creation (50-80% savings)
@@ -609,7 +673,7 @@ kubectl create secret docker-registry regcred \
 ```bash
 # Setup
 gcloud config set project YOUR_PROJECT_ID
-gcloud container clusters create multi-tier-cluster --zone us-central1-a --num-nodes 3 --machine-type n1-standard-2
+gcloud container clusters create multi-tier-cluster --zone us-central1-a --num-nodes 2 --machine-type e2-medium
 gcloud container clusters get-credentials multi-tier-cluster --zone us-central1-a
 
 # Deploy
@@ -623,6 +687,9 @@ kubectl get ingress -n multi-tier
 
 # Test API
 curl http://INGRESS_IP/api/records
+
+# Access Database (no client installation needed)
+kubectl exec -it deployment/postgres-db -n multi-tier -- psql -U dbuser -d microservices_db
 
 # Cleanup
 gcloud container clusters delete multi-tier-cluster --zone us-central1-a --quiet
