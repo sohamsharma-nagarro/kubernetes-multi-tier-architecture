@@ -6,7 +6,8 @@ metadata:
   labels:
     app: api-service
 spec:
-  replicas: 4
+  replicas: 1
+  progressDeadlineSeconds: 600
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -33,17 +34,11 @@ spec:
         env:
         - name: DB_HOST
           valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: db-host
             configMapKeyRef:
               name: db-config
               key: DB_HOST
         - name: DB_PORT
           valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: db-port
             configMapKeyRef:
               name: db-config
               key: DB_PORT
@@ -64,27 +59,27 @@ spec:
               key: db-password
         resources:
           requests:
-            cpu: 100m
-            memory: 128Mi
+            cpu: 50m
+            memory: 64Mi
           limits:
-            cpu: 500m
-            memory: 512Mi
+            cpu: 200m
+            memory: 256Mi
         livenessProbe:
           httpGet:
             path: /health
             port: 5000
-          initialDelaySeconds: 15
+          initialDelaySeconds: 45
           periodSeconds: 20
           timeoutSeconds: 5
-          failureThreshold: 3
+          failureThreshold: 5
         readinessProbe:
           httpGet:
             path: /ready
             port: 5000
-          initialDelaySeconds: 10
+          initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 3
+          timeoutSeconds: 5
+          failureThreshold: 6
         lifecycle:
           preStop:
             exec:

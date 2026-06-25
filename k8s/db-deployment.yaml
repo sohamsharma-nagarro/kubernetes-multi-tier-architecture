@@ -39,11 +39,11 @@ spec:
               key: db-password
         resources:
           requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
             cpu: 250m
             memory: 256Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
         volumeMounts:
         - name: postgres-storage
           mountPath: /var/lib/postgresql/data
@@ -55,7 +55,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U dbuser
+            - pg_isready -U dbuser -d microservices_db
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -65,7 +65,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U dbuser
+            - pg_isready -U dbuser -d microservices_db
           initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 3

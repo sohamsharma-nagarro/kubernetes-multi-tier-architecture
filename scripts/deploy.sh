@@ -29,7 +29,8 @@ kubectl apply -f $K8S_DIR/db-service.yaml
 # Wait for database to be ready
 echo "⏳ Waiting for database to be ready..."
 kubectl wait --for=condition=ready pod -l app=postgres-db -n $NAMESPACE --timeout=300s 2>/dev/null || true
-sleep 10
+echo "⏳ Waiting for database initialization to complete..."
+sleep 30
 
 # Deploy API service
 echo "🌐 Deploying API Service..."
@@ -37,7 +38,7 @@ kubectl apply -f $K8S_DIR/api-deployment.yaml
 kubectl apply -f $K8S_DIR/api-service.yaml
 
 # Wait for API to be ready
-echo "⏳ Waiting for API service to be ready..."
+echo "⏳ Waiting for API service to be ready (this may take up to 2 minutes)..."
 kubectl wait --for=condition=ready pod -l app=api-service -n $NAMESPACE --timeout=300s 2>/dev/null || true
 sleep 5
 

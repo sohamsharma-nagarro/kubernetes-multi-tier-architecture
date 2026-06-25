@@ -57,7 +57,9 @@ def release_db_connection(conn):
 
 @app.before_request
 def before_request():
-    """Initialize connection pool on first request"""
+    """Initialize connection pool on first request (skip for liveness probe)"""
+    if request.path == '/health':
+        return  # Liveness probe should not depend on DB
     if not connection_pool:
         try:
             init_connection_pool()
@@ -67,17 +69,8 @@ def before_request():
 
 @app.route('/health', methods=['GET'])
 def health():
-    """Liveness probe endpoint"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT 1')
-        cursor.close()
-        release_db_connection(conn)
-        return jsonify({'status': 'healthy'}), 200
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return jsonify({'status': 'unhealthy', 'error': str(e)}), 503
+    """Liveness probe endpoint - checks if the app process is alive (not DB connectivity)"""
+    return jsonify({'status': 'healthy'}), 200
 
 @app.route('/ready', methods=['GET'])
 def ready():
