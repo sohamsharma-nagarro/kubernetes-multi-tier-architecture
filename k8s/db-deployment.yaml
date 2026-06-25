@@ -55,7 +55,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U dbuser
+            - pg_isready -U dbuser -d microservices_db
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -65,7 +65,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U dbuser
+            - pg_isready -U dbuser -d microservices_db
           initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 3
